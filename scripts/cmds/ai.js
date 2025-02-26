@@ -1,93 +1,77 @@
 const axios = require('axios');
-const tracker = {};
 
-/*
-A Turtle APIs Production created by Turtle Rehat.
-Do not alter the credited information any attempt to do so may result in a permanent ban from Project86 APIs and Turtle APIs.
-*/
+async function checkAuthor(authorName) {
+  try {
+    const response = await axios.get('https://author-check.vercel.app/name');
+    const apiAuthor = response.data.name;
+    return apiAuthor === authorName;
+  } catch (error) {
+    console.error("Error checking author:", error);
+    return false;
+  }
+}
+
+async function a(api, event, args, message) {
+  try {
+    const isAuthorValid = await checkAuthor(module.exports.config.author);
+    if (!isAuthorValid) {
+      await message.reply("Author changer alert! Unauthorized modification detected.");
+      return;
+    }
+
+    const a = args.join(" ").trim();
+
+    if (!a) {
+      return message.reply("ex: {p} cmdName {your question} ");
+    }
+
+    const b = "you are zoro ai"; // the more better content you give the  best it became
+    const c = await d(a, b);
+
+    if (c.code === 2 && c.message === "success") {
+      message.reply(c.answer, (r, s) => {
+        global.GoatBot.onReply.set(s.messageID, {
+          commandName: module.exports.config.name,
+          uid: event.senderID 
+        });
+      });
+    } else {
+      message.reply("Please try again later.");
+    }
+  } catch (e) {
+    console.error("Error:", e);
+    message.reply("An error occurred while processing your request.");
+  }
+}
+
+async function d(a, b) {
+  try {
+    const d = await axios.get(`https://personal-ai-phi.vercel.app/kshitiz?prompt=${encodeURIComponent(a)}&content=${encodeURIComponent(b)}`);
+    return d.data;
+  } catch (f) {
+    console.error("Error from api", f.message);
+    throw f;
+  }
+}
 
 module.exports = {
-	config: {
-		name: "bayot",
-		version: "1.0",
-		author: "rehat--",
-		countDown: 5,
-		role: 0,
-		longDescription: "Chat GPT 4 Most Advance LLM",
-		category: "ai",
-		guide: { en: "{pn} <query>" },
-	},
-	clearHistory: function () {
-		global.GoatBot.onReply.clear();
-	},
-	onStart: async function ({ message, event, args, usersData, api, commandName }) {
-		const prompt = args.join(' ');
-		const userID = event.senderID;
-		const mid = event.messageID;
+  config: {
+    name: "personal-ai",// add your ai name here
+    version: "1.0",
+    author: "Vex_Kshitiz", // dont change this or cmd will not work
+    role: 0,
+    longDescription: "your ai description",// ai description
+    category: "ai",
+    guide: {
+      en: "{p}cmdName [prompt]"// add guide based on your ai name
+    }
+  },
 
-		if (!args[0]) return message.reply('Please enter a query.');
-
-		if (args[0] == 'clear') {
-			this.clearHistory();
-			const c = await clean(userID);
-			if (c) return message.reply('Conversation history cleared.');
-		}
-
-		api.setMessageReaction('⏳', mid, () => {}, true);
-		gpt(prompt, userID, message, mid, api);
-	},
-
-	onReply: async function ({ Reply, message, event, args, api, usersData }) {
-		const { author } = Reply;
-		if (author !== event.senderID) return;
-
-		const mid = event.messageID;
-		const prompt = args.join(' ');
-		const userID = event.senderID;
-
-		if (args[0] == 'clear') {
-			this.clearHistory();
-			const c = await clean(userID);
-			if (c) return message.reply('Conversation history cleared.');
-		}
-
-		api.setMessageReaction('⏳', mid, () => {}, true);
-		gpt(prompt, userID, message, mid, api);
-	}
+  handleCommand: a,
+  onStart: function ({ api, message, event, args }) {
+    return a(api, event, args, message);
+  },
+  onReply: function ({ api, message, event, args }) {
+    return a(api, event, args, message);
+  }
 };
-
-async function clean(userID) {
-	if (!tracker[userID]) return true;
-	if (tracker[userID]) {
-		delete tracker[userID];
-		return true;
-	}
-}
-
-async function gpt(text, userID, message, mid, api) {
-	tracker[userID] = tracker[userID] || '';
-	tracker[userID] += `${text}.\n`;
-
-	try {
-		const url = 'https://project86.cyclic.app/api/chat';
-
-		const conversationHistory = encodeURIComponent(tracker[userID]);
-		const getUrl = `${url}?query=${conversationHistory}`;
-
-		const response = await axios.post(getUrl);
-
-		const resultText = response.data.answer;
-		tracker[userID] = `${tracker[userID]}${text}.\n${resultText}`;
-
-		api.setMessageReaction('✅', mid, () => {}, true);
-		message.reply(`${resultText}\n\n𝙔𝙤𝙪 𝙘𝙖𝙣 𝙧𝙚𝙥𝙡𝙮 𝙩𝙤 𝙘𝙤𝙣𝙩𝙞𝙣𝙪𝙚 𝙘𝙝𝙖𝙩𝙩𝙞𝙣𝙜.`, (error, info) => {
-			global.GoatBot.onReply.set(info.messageID, {
-				commandName: 'ai',
-				author: userID,
-			});
-		});
-	} catch (error) {
-		api.setMessageReaction('❌', mid, () => {}, true);
-		message.reply('An error occurred.');
-	}
-}
